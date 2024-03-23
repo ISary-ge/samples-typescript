@@ -4,6 +4,8 @@ import * as Clients from '../types/clients-client';
 import * as PostOffice from '../types/post-office-client';
 import * as Commands from '../types/commands';
 import { log } from '@temporalio/activity';
+import { readFileSync, writeFileSync } from 'fs'
+import { uuid4 } from '@temporalio/workflow'
 
 export interface BoundedContextClients {
   accounts: Accounts.Client;
@@ -14,10 +16,16 @@ export interface BoundedContextClients {
 
 class ClientsServiceClient implements Clients.Client {
   async removeClient(params: Commands.RemoveClient): Promise<void> {
+    let oldClients: any = readFileSync('clients.json').toString();
+    oldClients = !oldClients ? [] : JSON.parse(oldClients);
+    writeFileSync('clients.json', JSON.stringify(oldClients.filter(client => client.accountId !== params.accountId)))
     log.info('REMOVING CLIENT', { params });
   }
 
   async addClient(params: Commands.AddClient): Promise<void> {
+    let oldClients: any = readFileSync('clients.json').toString();
+    oldClients = !oldClients ? [] : JSON.parse(oldClients);
+    writeFileSync('clients.json', JSON.stringify([...oldClients,params]))
     if (params.shouldThrow) {
       throw new Error(params.shouldThrow);
     }
@@ -26,6 +34,9 @@ class ClientsServiceClient implements Clients.Client {
 }
 class AccountsClient implements Accounts.Client {
   async createAccount(params: Commands.CreateAccount): Promise<void> {
+    let oldAccounts: any = readFileSync('accounts.json').toString();
+    oldAccounts = !oldAccounts ? [] : JSON.parse(oldAccounts);
+    writeFileSync('accounts.json', JSON.stringify([...oldAccounts, params]))
     if (params.shouldThrow) {
       throw new Error(params.shouldThrow);
     }
@@ -34,6 +45,9 @@ class AccountsClient implements Accounts.Client {
 }
 class BankingClient implements Banking.Client {
   async addBankAccount(params: Commands.AddBankAccount): Promise<void> {
+    let bankAccounts: any = readFileSync('bank-accounts.json').toString();
+    bankAccounts = !bankAccounts ? [] : JSON.parse(bankAccounts);
+    writeFileSync('bank-accounts.json', JSON.stringify([...bankAccounts, params]))
     if (params.shouldThrow) {
       throw new Error(params.shouldThrow);
     }
@@ -41,6 +55,9 @@ class BankingClient implements Banking.Client {
   }
 
   async disconnectBankAccounts(params: Commands.DisconnectBankAccounts): Promise<void> {
+    let bankAccounts: any = readFileSync('bank-accounts.json').toString();
+    bankAccounts = !bankAccounts ? [] : JSON.parse(bankAccounts);
+    writeFileSync('clients.json', JSON.stringify(bankAccounts.filter(account => account.accountId !== params.accountId)));
     log.info('DISCONNECT BANK ACCOUNTS', { params });
   }
 }
